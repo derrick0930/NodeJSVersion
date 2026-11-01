@@ -1,0 +1,151 @@
+{
+    "_comment": "Custom Node.js egg - NelloW",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "name": "Node.js 16",
+    "author": "nellow@localhost",
+    "description": "Node.js egg dengan custom startup file, custom startup command, dan auto npm install.",
+    "features": null,
+    "docker_images": {
+        "Node.js 16": "shardox/nodejs:16"
+    },
+    "file_denylist": [],
+    "startup": "if [[ -d .git ]] && [[ \"{{AUTO_UPDATE}}\" == \"1\" ]]; then git pull; fi; if [[ ! -z \"${NODE_PACKAGES}\" ]]; then /usr/local/bin/npm install ${NODE_PACKAGES}; fi; if [[ ! -z \"${UNNODE_PACKAGES}\" ]]; then /usr/local/bin/npm uninstall ${UNNODE_PACKAGES}; fi; if [[ \"{{AUTO_INSTALL}}\" == \"1\" ]] && [[ -f /home/container/package.json ]]; then /usr/local/bin/npm install ${NPM_ARGS}; fi; {{CUSTOM_STARTUP}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Node.js installer\napt update\napt install -y git curl jq file unzip make gcc g++ python3 libtool\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [[ ! -z \"${GIT_ADDRESS}\" ]]; then\n    if [[ \"${GIT_ADDRESS}\" != *.git ]]; then GIT_ADDRESS=\"${GIT_ADDRESS}.git\"; fi\n    if [[ ! -z \"${USERNAME}\" ]] && [[ ! -z \"${ACCESS_TOKEN}\" ]]; then\n        GIT_ADDRESS=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo -e ${GIT_ADDRESS} | cut -d/ -f3-)\"\n    fi\n    if [[ -z \"$(ls -A /mnt/server)\" ]]; then\n        if [[ ! -z \"${BRANCH}\" ]]; then\n            git clone --single-branch --branch ${BRANCH} ${GIT_ADDRESS} .\n        else\n            git clone ${GIT_ADDRESS} .\n        fi\n    fi\nfi\n\nif [[ -f /mnt/server/package.json ]]; then\n    /usr/local/bin/npm install --production\nfi\n\necho \"Install selesai\"\nexit 0\n",
+            "container": "node:20-bookworm-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Startup File",
+            "description": "File utama yang dijalankan (relatif terhadap root server).",
+            "env_variable": "STARTUP_FILE",
+            "default_value": "index.js",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Custom Startup Command",
+            "description": "Perintah start terakhir. Boleh diganti, contoh: node ${STARTUP_FILE} atau npm start. Variabel lain bisa dipakai dengan ${NAMA}.",
+            "env_variable": "CUSTOM_STARTUP",
+            "default_value": "/usr/local/bin/node /home/container/${STARTUP_FILE} ${NODE_ARGS}",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:512",
+            "field_type": "text"
+        },
+        {
+            "name": "Node Arguments",
+            "description": "Argumen tambahan untuk node, contoh: --max-old-space-size=512",
+            "env_variable": "NODE_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:256",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto Install",
+            "description": "1 = jalankan npm install otomatis kalau ada package.json sebelum start.",
+            "env_variable": "AUTO_INSTALL",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "NPM Install Arguments",
+            "description": "Argumen tambahan untuk npm install, contoh: --omit=dev",
+            "env_variable": "NPM_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        },
+        {
+            "name": "Extra Packages",
+            "description": "Paket npm tambahan yang di-install saat start (pisah spasi).",
+            "env_variable": "NODE_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Uninstall Packages",
+            "description": "Paket npm yang di-uninstall saat start (pisah spasi).",
+            "env_variable": "UNNODE_PACKAGES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Auto Update",
+            "description": "1 = git pull otomatis saat start (hanya jika ada folder .git).",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Repo Address",
+            "description": "Repo yang di-clone saat install (opsional).",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Branch",
+            "description": "Branch yang di-clone (opsional).",
+            "env_variable": "BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Username",
+            "description": "Username git untuk repo private.",
+            "env_variable": "USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Access Token",
+            "description": "Token/password git untuk repo private.",
+            "env_variable": "ACCESS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}
