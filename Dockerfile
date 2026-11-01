@@ -1,17 +1,15 @@
 ARG NODE_VERSION=20
 ARG DEBIAN=bookworm
-FROM node:${NODE_VERSION}-${DEBIAN}-slim
 
-RUN if grep -q 'VERSION_CODENAME=bullseye' /etc/os-release && [ -f /etc/apt/sources.list ]; then \
-      sed -i -e 's|deb.debian.org/debian-security|archive.debian.org/debian-security|g' \
-             -e 's|security.debian.org/debian-security|archive.debian.org/debian-security|g' \
-             -e 's|deb.debian.org/debian|archive.debian.org/debian|g' \
-             -e '/bullseye-updates/d' /etc/apt/sources.list; \
-      echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
-    fi
+FROM node:${NODE_VERSION}-${DEBIAN}-slim AS nodebase
+
+FROM debian:bookworm-slim
+
+COPY --from=nodebase /usr/local/ /usr/local/
+COPY --from=nodebase /opt/ /opt/
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git curl ca-certificates iproute2 build-essential python3 \
+ && apt-get install -y --no-install-recommends git curl ca-certificates iproute2 build-essential python3 libstdc++6 \
  && rm -rf /var/lib/apt/lists/* \
  && useradd -m -d /home/container -s /bin/bash container
 
